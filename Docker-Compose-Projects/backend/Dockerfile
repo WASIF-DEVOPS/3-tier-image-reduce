@@ -1,20 +1,25 @@
-# Use the official Node.js image as a base image
-FROM node:14
+# ============================================
+# Stage 1: Build & Dependencies
+# ============================================
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Set the working directory inside the container
+# ============================================
+# Stage 2: Production Image (Slim)
+# ============================================
+FROM node:18-alpine
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code to the working directory
+# Copy production node_modules from builder
+COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
-# Expose the port that your app is running on
-EXPOSE 3500
+# Run as non-root for K8s security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
-# Command to run your application
+EXPOSE 3500
 CMD ["node", "server.js"]
