@@ -1,0 +1,41 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: three-tier-cluster
+  region: us-east-1
+  version: "1.32"
+
+# Managed VPC
+vpc:
+  cidr: "10.0.0.0/16"
+
+# ============================================
+# CUSTOM NODE GROUP (resume point!)
+# ============================================
+managedNodeGroups:
+  - name: three-tier-ng        # Custom Node Group
+    instanceType: t3.medium    # 2 vCPU, 4GB RAM
+    desiredCapacity: 2         # 2 nodes by default
+    minSize: 1                 # Auto-scale down to 1
+    maxSize: 4                 # Auto-scale up to 4
+    volumeSize: 20             # 20GB storage per node
+    privateNetworking: true    # Nodes in private subnet (security)
+    labels:
+      role: worker
+      environment: production
+    tags:
+      Project: three-tier-app
+      Environment: production
+      Owner: nahid
+    iam:
+      withAddonPolicies:
+        ebs: true              # EBS volumes ke liye
+        awsLoadBalancerController: true  # ALB Ingress ke liye
+
+# CloudWatch Logging
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - api
+      - audit
